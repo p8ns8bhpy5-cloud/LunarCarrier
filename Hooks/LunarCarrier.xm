@@ -24,6 +24,14 @@ static NSString *lunarText(void) {
     return s;
 }
 
+static NSAttributedString *lunarAttributed(UIFont *baseFont) {
+    UIFont *f = baseFont ?: [UIFont systemFontOfSize:14 weight:UIFontWeightBold];
+    UIFont *boldF = [UIFont fontWithDescriptor:[[f fontDescriptor] fontDescriptorWithSymbolicTraits:UIFontDescriptorTraitBold] size:f.pointSize];
+    return [[NSAttributedString alloc] initWithString:lunarText()
+                                         attributes:@{NSFontAttributeName: boldF,
+                                                      NSForegroundColorAttributeName: [UIColor whiteColor]}];
+}
+
 static BOOL isCarrierText(NSString *s) {
     if (!s.length) return NO;
     NSArray *keys = @[@"移动", @"联通", @"电信", @"全球通", @"CMCC", @"China Mobile",
@@ -42,7 +50,6 @@ static BOOL isInStatusBar(UIView *v) {
     return NO;
 }
 
-// 只替换主卡：同一容器里如果有"副号"标签，说明这是副卡行，跳过
 static BOOL isMainCardRow(UILabel *label) {
     UIView *container = label.superview;
     if (!container) return YES;
@@ -60,18 +67,22 @@ static BOOL isMainCardRow(UILabel *label) {
 %hook UILabel
 - (void)setText:(NSString *)text {
     if (isCarrierText(text) && isInStatusBar(self) && isMainCardRow(self)) {
-        text = lunarText();
+        NSAttributedString *a = lunarAttributed(self.font);
+        text = a.string;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self setAttributedText:lunarAttributed(self.font)];
+        });
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
     if (isCarrierText(text.string) && isInStatusBar(self) && isMainCardRow(self)) {
-        text = [[NSAttributedString alloc] initWithString:lunarText()];
+        text = lunarAttributed(self.font);
     }
     %orig;
 }
 %end
 
 %ctor {
-    writeLog(@"LunarCarrier v36 只主卡，无加粗");
+    writeLog(@"LunarCarrier v38 加粗白色");
 }
