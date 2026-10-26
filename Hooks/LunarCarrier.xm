@@ -114,18 +114,27 @@ static void applyStyle(UILabel *label) {
     label.font = [UIFont systemFontOfSize:size weight:w];
 }
 
+// 只替换状态栏里的 carrier label（superview 链含 _UIStatusBar）
+static BOOL isInStatusBar(UIView *v) {
+    UIView *p = v;
+    while (p) {
+        NSString *cn = NSStringFromClass([p class]);
+        if ([cn containsString:@"StatusBar"] || [cn containsString:@"statusBar"]) return YES;
+        p = p.superview;
+    }
+    return NO;
+}
+
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (isCarrierText(text) && shouldReplace()) {
+    if (isCarrierText(text) && isInStatusBar(self) && shouldReplace()) {
         text = lunarText();
-        [self setNeedsLayout];
-        // 下一轮 runloop 应用样式
         dispatch_async(dispatch_get_main_queue(), ^{ applyStyle(self); });
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (isCarrierText(text.string) && shouldReplace()) {
+    if (isCarrierText(text.string) && isInStatusBar(self) && shouldReplace()) {
         text = [[NSAttributedString alloc] initWithString:lunarText()];
         dispatch_async(dispatch_get_main_queue(), ^{ applyStyle(self); });
     }
@@ -134,7 +143,8 @@ static void applyStyle(UILabel *label) {
 %end
 
 %ctor {
-    writeLog(@"LunarCarrier 加载 (v17 CFPreferences+开关+样式)");
+    writeLog([NSString stringWithFormat:@"LunarCarrier 加载 v18 锁屏开关=%d 任务栏开关=%d",
+              prefBool(@"LockEnabled", YES), prefBool(@"SpringboardEnabled", YES)]);
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                      NULL, onLockStateChanged,
                                      CFSTR("com.apple.springboard.lockcomplete"),
