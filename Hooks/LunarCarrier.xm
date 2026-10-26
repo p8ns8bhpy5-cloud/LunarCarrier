@@ -80,18 +80,22 @@ static NSInteger gHookCalls = 0;
 static void sweep(void) {
     UIApplication *app = [UIApplication sharedApplication];
     NSMutableSet *windows = [NSMutableSet set];
-    for (UIWindow *w in app.windows) [windows addObject:w];
-    for (UIScene *sc in app.connectedScenes)
-        if ([sc respondsToSelector:@selector(windows)])
-            for (UIWindow *w in [(id)sc windows]) [windows addObject:w];
+    for (UIScene *sc in app.connectedScenes) {
+        if ([sc isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *ws = (UIWindowScene *)sc;
+            for (UIWindow *w in ws.windows) [windows addObject:w];
+        }
+    }
     int replaced = 0;
     for (UIWindow *win in windows) {
         NSMutableArray *stack = [NSMutableArray arrayWithObject:win];
         while (stack.count) {
             UIView *v = stack.lastObject; [stack removeLastObject];
             NSString *cur = nil;
-            if ([v respondsToSelector:@selector(attributedText)])
-                cur = [v performSelector:@selector(attributedText)].string;
+            if ([v respondsToSelector:@selector(attributedText)]) {
+                NSAttributedString *at = [v performSelector:@selector(attributedText)];
+                cur = at.string;
+            }
             if (!cur.length && [v respondsToSelector:@selector(text)])
                 cur = [v performSelector:@selector(text)];
             if (isCarrierText(cur)) {
