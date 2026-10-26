@@ -14,21 +14,28 @@ static void writeLog(NSString *msg) {
     }
 }
 
-// 直接读 plist 文件（PreferenceLoader 写入的位置）
+// 扫描 Preferences 目录找 plist
 static NSDictionary *loadPrefs(void) {
     static NSDictionary *cached = nil;
     static dispatch_once_t t;
     dispatch_once(&t, ^{
-        NSArray *paths = @[
-            @"/var/jb/var/mobile/Library/Preferences/com.yourname.lunarcarrier.plist",
-            @"/var/mobile/Library/Preferences/com.yourname.lunarcarrier.plist",
-            [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/com.yourname.lunarcarrier.plist"],
+        cached = @{};
+        NSFileManager *fm = [NSFileManager defaultManager];
+        NSArray *dirs = @[
+            @"/var/jb/var/mobile/Library/Preferences/",
+            @"/var/mobile/Library/Preferences/",
         ];
-        for (NSString *p in paths) {
-            NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:p];
-            if (d.count) { cached = d; break; }
+        for (NSString *dir in dirs) {
+            NSArray *files = [fm contentsOfDirectoryAtPath:dir error:nil];
+            for (NSString *f in files) {
+                if (![f containsString:@"lunarcarrier"]) continue;
+                NSString *p = [dir stringByAppendingPathComponent:f];
+                NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:p];
+                writeLog([NSString stringWithFormat:@"找到 plist: %@ keys=%@", p, d.allKeys]);
+                if (d.count) { cached = d; break; }
+            }
+            if (cached.count) break;
         }
-        if (!cached) cached = @{};
     });
     return cached;
 }
