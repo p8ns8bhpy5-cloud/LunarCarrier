@@ -13,6 +13,3 @@ LunarCarrier_FRAMEWORKS = UIKit Foundation CoreFoundation
 LunarCarrier_LIBRARIES = substrate
 
 include $(THEOS_MAKE_PATH)/tweak.mk
-
-SUBPROJECTS += LunarCarrierPrefs
-include $(THEOS_MAKE_PATH)/aggregate.mk
