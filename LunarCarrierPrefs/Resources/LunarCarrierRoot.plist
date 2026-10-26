@@ -25,13 +25,6 @@
 			<key>default</key><true/>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSToggleSwitchSpecifier</string>
-			<key>label</key><string>去除闰字</string>
-			<key>key</key><string>RemoveLeapChar</string>
-			<key>default</key><false/>
-		</dict>
-
-		<dict>
 			<key>cell</key><string>PSGroupCell</string>
 			<key>label</key><string>字体样式</string>
 		</dict>
