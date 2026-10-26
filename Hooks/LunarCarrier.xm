@@ -55,6 +55,15 @@ static NSInteger gHookCalls = 0;
 - (NSString *)shortLabel {
     return lunarText();
 }
+- (NSString *)carrierName {
+    return lunarText();
+}
+- (NSString *)mobileOperatorName {
+    return lunarText();
+}
+- (NSString *)serviceProviderName {
+    return lunarText();
+}
 %end
 
 %hook _UIStatusBarStringView
