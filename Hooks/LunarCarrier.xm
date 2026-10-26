@@ -14,15 +14,24 @@ static void writeLog(NSString *msg) {
     }
 }
 
-// 用 CFPreferences 读设置（rootless 兼容）
+// 用 NSUserDefaults suiteName 读设置（PreferenceLoader 写入的域）
+static NSUserDefaults *prefs() {
+    static NSUserDefaults *d = nil;
+    static dispatch_once_t t;
+    dispatch_once(&t, ^{
+        d = [[NSUserDefaults alloc] initWithSuiteName:kDomain];
+        [d synchronize];
+    });
+    return d;
+}
+
 static id prefGet(NSString *key) {
-    CFPreferencesAppSynchronize((__bridge CFStringRef)kDomain);
-    return (__bridge_transfer id)CFPreferencesCopyAppValue((__bridge CFStringRef)key, (__bridge CFStringRef)kDomain);
+    return [prefs() objectForKey:key];
 }
 
 static BOOL prefBool(NSString *key, BOOL def) {
     id v = prefGet(key);
-    if (!v) return def;
+    if (v == nil) return def;
     return [v boolValue];
 }
 
@@ -143,8 +152,9 @@ static BOOL isInStatusBar(UIView *v) {
 %end
 
 %ctor {
-    writeLog([NSString stringWithFormat:@"LunarCarrier 加载 v18 锁屏开关=%d 任务栏开关=%d",
-              prefBool(@"LockEnabled", YES), prefBool(@"SpringboardEnabled", YES)]);
+    writeLog([NSString stringWithFormat:@"v19 锁屏=%d 任务栏=%d Find1=[%@] Replace1=[%@]",
+              prefBool(@"LockEnabled", YES), prefBool(@"SpringboardEnabled", YES),
+              prefStr(@"Find1"), prefStr(@"Replace1")]);
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                      NULL, onLockStateChanged,
                                      CFSTR("com.apple.springboard.lockcomplete"),
