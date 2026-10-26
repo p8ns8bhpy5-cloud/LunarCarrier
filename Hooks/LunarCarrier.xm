@@ -53,9 +53,17 @@ static BOOL isInStatusBar(UIView *v) {
     return NO;
 }
 
+// 只替换主卡（上方那行）：label 在状态栏内 y 坐标较小的
+static BOOL isMainCarrierLabel(UILabel *label) {
+    // 取 label 在其 superview 里的 y
+    CGFloat y = label.frame.origin.y;
+    // 主卡通常在上方，y 较小（0~10）；副卡 y 较大（>10）
+    return y < 10;
+}
+
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (gIsLocked && isCarrierText(text) && isInStatusBar(self)) {
+    if (gIsLocked && isCarrierText(text) && isInStatusBar(self) && isMainCarrierLabel(self)) {
         NSAttributedString *a = lunarAttributed(self.font);
         text = a.string;
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -65,7 +73,7 @@ static BOOL isInStatusBar(UIView *v) {
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (gIsLocked && isCarrierText(text.string) && isInStatusBar(self)) {
+    if (gIsLocked && isCarrierText(text.string) && isInStatusBar(self) && isMainCarrierLabel(self)) {
         text = lunarAttributed(self.font);
     }
     %orig;
