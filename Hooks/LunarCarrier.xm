@@ -11,14 +11,20 @@ static void writeLog(NSString *msg) {
     else { [data writeToFile:p atomically:YES]; }
 }
 
-// 农历字符串：去掉"X年"，月名替换
+static BOOL gIsLocked = NO;
+
+static void onLockStateChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    NSString *n = (__bridge NSString *)name;
+    if ([n isEqualToString:@"com.apple.springboard.lockcomplete"]) gIsLocked = YES;
+    else if ([n isEqualToString:@"com.apple.springboard.unlockcomplete"]) gIsLocked = NO;
+}
+
 static NSString *lunarText(void) {
-    NSString *s = lunarDateString();  // 如 "马年九月十七"
+    NSString *s = lunarDateString();
     NSRange yr = [s rangeOfString:@"年"];
     if (yr.location != NSNotFound) {
-        s = [s substringFromIndex:yr.location + 1];  // 去掉年
+        s = [s substringFromIndex:yr.location + 1];
     }
-    // 月名替换
     NSDictionary *map = @{@"十一月":@"冬月", @"十二月":@"腊月"};
     for (NSString *k in map) {
         s = [s stringByReplacingOccurrencesOfString:k withString:map[k]];
@@ -34,7 +40,6 @@ static BOOL isCarrierText(NSString *s) {
     return NO;
 }
 
-// 只替换状态栏内的 carrier label
 static BOOL isInStatusBar(UIView *v) {
     UIView *p = v;
     while (p) {
@@ -47,13 +52,13 @@ static BOOL isInStatusBar(UIView *v) {
 
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (isCarrierText(text) && isInStatusBar(self)) {
+    if (gIsLocked && isCarrierText(text) && isInStatusBar(self)) {
         text = lunarText();
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (isCarrierText(text.string) && isInStatusBar(self)) {
+    if (gIsLocked && isCarrierText(text.string) && isInStatusBar(self)) {
         text = [[NSAttributedString alloc] initWithString:lunarText()];
     }
     %orig;
@@ -61,5 +66,13 @@ static BOOL isInStatusBar(UIView *v) {
 %end
 
 %ctor {
-    writeLog(@"LunarCarrier v28 精简版（无设置，只显示月日）");
+    writeLog(@"LunarCarrier v29 只锁屏显示");
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                     NULL, onLockStateChanged,
+                                     CFSTR("com.apple.springboard.lockcomplete"),
+                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                     NULL, onLockStateChanged,
+                                     CFSTR("com.apple.springboard.unlockcomplete"),
+                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 }
