@@ -1,0 +1,9 @@
+Package: com.yourname.lunarcarrier
+Name: 农历运营商 (LunarCarrier)
+Version: 1.0.0-1
+Architecture: iphoneos-arm64
+Description: 把状态栏运营商文字替换为农历日期，可在设置 App 里自定义文字替换
+Maintainer: yourname <you@example.com>
+Author: yourname <you@example.com>
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000) | ellekit (>= 0.1), preferenceloader
