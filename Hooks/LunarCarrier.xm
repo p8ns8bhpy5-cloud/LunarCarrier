@@ -50,23 +50,15 @@ static BOOL isInStatusBar(UIView *v) {
     return NO;
 }
 
-static BOOL isMainCardRow(UILabel *label) {
-    UIView *container = label.superview;
-    if (!container) return YES;
-    for (UIView *v in container.subviews) {
-        if ([v isKindOfClass:[UILabel class]]) {
-            UILabel *l = (UILabel *)v;
-            if ([l.text containsString:@"副号"] || [l.text containsString:@"副"]) {
-                return NO;
-            }
-        }
-    }
-    return YES;
+// 只替换锁屏：锁屏 carrier label 的 y 坐标 > 10（约17.7），任务栏 y=0
+static BOOL isLockScreenCarrier(UILabel *label) {
+    CGFloat y = label.frame.origin.y;
+    return y > 10;
 }
 
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (isCarrierText(text) && isInStatusBar(self) && isMainCardRow(self)) {
+    if (isCarrierText(text) && isInStatusBar(self) && isLockScreenCarrier(self)) {
         NSAttributedString *a = lunarAttributed(self.font);
         text = a.string;
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -76,7 +68,7 @@ static BOOL isMainCardRow(UILabel *label) {
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (isCarrierText(text.string) && isInStatusBar(self) && isMainCardRow(self)) {
+    if (isCarrierText(text.string) && isInStatusBar(self) && isLockScreenCarrier(self)) {
         text = lunarAttributed(self.font);
     }
     %orig;
@@ -84,5 +76,5 @@ static BOOL isMainCardRow(UILabel *label) {
 %end
 
 %ctor {
-    writeLog(@"LunarCarrier v38 加粗白色");
+    writeLog(@"LunarCarrier v39 只锁屏");
 }
