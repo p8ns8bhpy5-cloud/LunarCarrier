@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>农历运营商</string>
+	<key>defaults</key>
+	<string>com.yourname.lunarcarrier</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>文字替换</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSToggleSwitchSpecifier</string>
+			<key>label</key><string>去除闰字</string>
+			<key>key</key><string>RemoveLeapChar</string>
+			<key>default</key><false/>
+		</dict>
+
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>自定义替换规则</string>
+			<key>footerText</key><string>把“查找”里的文字替换成“替换为”。“查找”留空则跳过该组。</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>规则1·查找</string>
+			<key>key</key><string>Find1</string>
+			<key>default</key><string></string>
+			<key>placeholder</key><string>例如：闰二月</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>规则1·替换为</string>
+			<key>key</key><string>Replace1</string>
+			<key>default</key><string></string>
+			<key>placeholder</key><string>例如：二月</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>规则2·查找</string>
+			<key>key</key><string>Find2</string>
+			<key>default</key><string></string>
+			<key>placeholder</key><string>可选</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>规则2·替换为</string>
+			<key>key</key><string>Replace2</string>
+			<key>default</key><string></string>
+			<key>placeholder</key><string>可选</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>规则3·查找</string>
+			<key>key</key><string>Find3</string>
+			<key>default</key><string></string>
+			<key>placeholder</key><string>可选</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>规则3·替换为</string>
+			<key>key</key><string>Replace3</string>
+			<key>default</key><string></string>
+			<key>placeholder</key><string>可选</string>
+		</dict>
+
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>footerText</key><string>修改后请注销/重启 SpringBoard 后生效。</string>
+		</dict>
+	</array>
+</dict>
+</plist>
