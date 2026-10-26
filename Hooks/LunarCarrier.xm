@@ -19,24 +19,35 @@ static void onLockStateChanged(CFNotificationCenterRef center, void *observer, C
     else if ([n isEqualToString:@"com.apple.springboard.unlockcomplete"]) gIsLocked = NO;
 }
 
-static NSString *lunarText(void) {
-    NSString *s = lunarDateString();  // "马年九月十七"
-    // 取生肖字（第一个字）
+// 返回 (生肖, 月日)
+static NSArray *lunarParts(void) {
+    NSString *s = lunarDateString();
     NSString *zodiac = @"";
     NSRange yr = [s rangeOfString:@"年"];
     if (yr.location != NSNotFound) {
-        zodiac = [s substringToIndex:1];  // "马"
-        s = [s substringFromIndex:yr.location + 1];  // "九月十七"
+        zodiac = [s substringToIndex:1];
+        s = [s substringFromIndex:yr.location + 1];
     }
-    // 月名替换
     NSDictionary *map = @{@"十一月":@"冬月", @"十二月":@"腊月"};
     for (NSString *k in map) {
         s = [s stringByReplacingOccurrencesOfString:k withString:map[k]];
     }
+    return @[zodiac, s];
+}
+
+// 构造 attributed string：生肖加粗，其余正常
+static NSAttributedString *lunarAttributed(UIFont *baseFont) {
+    NSArray *parts = lunarParts();
+    NSString *zodiac = parts[0];
+    NSString *rest = parts[1];
+    UIFont *boldFont = baseFont ?: [UIFont systemFontOfSize:14 weight:UIFontWeightBold];
+    UIFont *normalFont = baseFont ?: [UIFont systemFontOfSize:14 weight:UIFontWeightRegular];
+    NSMutableAttributedString *mas = [[NSMutableAttributedString alloc] init];
     if (zodiac.length) {
-        s = [NSString stringWithFormat:@"%@ %@", zodiac, s];
+        [mas appendAttributedString:[[NSAttributedString alloc] initWithString:zodiac attributes:@{NSFontAttributeName: boldFont}]];
     }
-    return s;
+    [mas appendAttributedString:[[NSAttributedString alloc] initWithString:rest attributes:@{NSFontAttributeName: normalFont}]];
+    return mas;
 }
 
 static BOOL isCarrierText(NSString *s) {
@@ -60,20 +71,26 @@ static BOOL isInStatusBar(UIView *v) {
 %hook UILabel
 - (void)setText:(NSString *)text {
     if (gIsLocked && isCarrierText(text) && isInStatusBar(self)) {
-        text = lunarText();
+        NSArray *parts = lunarParts();
+        text = [NSString stringWithFormat:@"%@%@", parts[0], parts[1]];
+        // 下一轮设置 attributed string 让生肖加粗
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSAttributedString *a = lunarAttributed(self.font);
+            [self setAttributedText:a];
+        });
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
     if (gIsLocked && isCarrierText(text.string) && isInStatusBar(self)) {
-        text = [[NSAttributedString alloc] initWithString:lunarText()];
+        text = lunarAttributed(self.font);
     }
     %orig;
 }
 %end
 
 %ctor {
-    writeLog(@"LunarCarrier v29 只锁屏显示");
+    writeLog(@"LunarCarrier v33 生肖加粗");
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                      NULL, onLockStateChanged,
                                      CFSTR("com.apple.springboard.lockcomplete"),
