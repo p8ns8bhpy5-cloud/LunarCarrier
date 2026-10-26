@@ -64,9 +64,8 @@ static NSString *lunarText(void) {
 - (void)setText:(NSString *)text {
     if (isCarrierText(text)) {
         CGFloat y = [self.window convertPoint:CGPointZero fromView:self].y;
-        writeLog([NSString stringWithFormat:@"[CARRIER] y=%.0f text=%@", y, text]);
-        // 只替换主卡（上面那行，y 较小），副卡不动
-        if (y < 20) {
+        // 主卡 y=0，副卡 y=14，只替换主卡
+        if (y < 7) {
             text = lunarText();
         }
     }
@@ -75,8 +74,7 @@ static NSString *lunarText(void) {
 - (void)setAttributedText:(NSAttributedString *)text {
     if (isCarrierText(text.string)) {
         CGFloat y = [self.window convertPoint:CGPointZero fromView:self].y;
-        writeLog([NSString stringWithFormat:@"[CARRIER-A] y=%.0f text=%@", y, text.string]);
-        if (y < 20) {
+        if (y < 7) {
             text = [[NSAttributedString alloc] initWithString:lunarText()];
         }
     }
