@@ -50,26 +50,11 @@
 			<key>placeholder</key><string>例如：14 留空=默认</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSRadioGroupCell</string>
+			<key>cell</key><string>PSEditTextCell</string>
 			<key>label</key><string>字体粗细</string>
-			<key>key</key><string>FontWeight</key>
+			<key>key</key><string>FontWeight</string>
 			<key>default</key><string>regular</string>
-			<key>validTitles</key>
-			<array>
-				<string>细</string>
-				<string>轻</string>
-				<string>常规</string>
-				<string>中</string>
-				<string>粗</string>
-			</array>
-			<key>validKeys</key>
-			<array>
-				<string>thin</string>
-				<string>light</string>
-				<string>regular</string>
-				<string>medium</string>
-				<string>bold</string>
-			</array>
+			<key>placeholder</key><string>thin/light/regular/medium/bold</string>
 		</dict>
 
 		<dict>
