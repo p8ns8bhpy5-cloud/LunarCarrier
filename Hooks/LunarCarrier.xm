@@ -2,8 +2,7 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 
-// rootless 偏好路径
-static NSString *const kPrefsPath = @"/var/mobile/Library/Preferences/com.yourname.lunarcarrier.plist";
+static NSString *const kDomain = @"com.yourname.lunarcarrier";
 
 static void writeLog(NSString *msg) {
     NSString *line = [NSString stringWithFormat:@"%@ %@\n", [NSDate date], msg];
@@ -13,6 +12,31 @@ static void writeLog(NSString *msg) {
         if (fh) { [fh seekToEndOfFile]; [fh writeData:data]; }
         else { [data writeToFile:p atomically:YES]; }
     }
+}
+
+// 用 CFPreferences 读设置（rootless 兼容）
+static id prefGet(NSString *key) {
+    CFPreferencesAppSynchronize((__bridge CFStringRef)kDomain);
+    return (__bridge_transfer id)CFPreferencesCopyAppValue((__bridge CFStringRef)key, (__bridge CFStringRef)kDomain);
+}
+
+static BOOL prefBool(NSString *key, BOOL def) {
+    id v = prefGet(key);
+    if (!v) return def;
+    return [v boolValue];
+}
+
+static NSString *prefStr(NSString *key) {
+    id v = prefGet(key);
+    return [v isKindOfClass:[NSString class]] ? v : @"";
+}
+
+static BOOL gIsLocked = NO;
+
+static void onLockStateChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    NSString *n = (__bridge NSString *)name;
+    if ([n isEqualToString:@"com.apple.springboard.lockcomplete"]) gIsLocked = YES;
+    else if ([n isEqualToString:@"com.apple.springboard.unlockcomplete"]) gIsLocked = NO;
 }
 
 // 对一段文字应用多组替换（用 || 分隔）
@@ -29,23 +53,12 @@ static NSString *applyPairs(NSString *text, NSString *find, NSString *repl) {
     return text;
 }
 
-// 把农历字符串拆成 年/月/日 三段，分别替换
-// 输入如：马年九月十七 / 马年闰二月初一
 static NSString *applyReplacement(NSString *input) {
-    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefsPath];
-    static BOOL gLogged = NO;
-    if (!gLogged) {
-        gLogged = YES;
-        writeLog([NSString stringWithFormat:@"[PREFS] %@", prefs]);
-        writeLog([NSString stringWithFormat:@"[INPUT] %@", input]);
-    }
-
-    // 找"年"字位置，年段 = 到"年"为止（含"年"）
+    // 找"年"字位置
     NSRange yearRange = [input rangeOfString:@"年"];
     NSString *yearPart = yearRange.location != NSNotFound ? [input substringToIndex:yearRange.location + 1] : @"";
     NSString *rest = yearRange.location != NSNotFound ? [input substringFromIndex:yearRange.location + 1] : input;
 
-    // 日段 = 末尾2字（初一..三十 都是2字）
     NSString *dayPart = @"";
     NSString *monthPart = rest;
     if (rest.length >= 2) {
@@ -53,17 +66,14 @@ static NSString *applyReplacement(NSString *input) {
         monthPart = [rest substringToIndex:rest.length - 2];
     }
 
-    // 分别替换（支持 || 多组）
-    if ([prefs[@"RemoveLeapChar"] boolValue]) {
+    if (prefBool(@"RemoveLeapChar", NO)) {
         monthPart = [monthPart stringByReplacingOccurrencesOfString:@"闰" withString:@""];
     }
-    yearPart = applyPairs(yearPart, prefs[@"Find1"], prefs[@"Replace1"]);
-    monthPart = applyPairs(monthPart, prefs[@"Find2"], prefs[@"Replace2"]);
-    dayPart = applyPairs(dayPart, prefs[@"Find3"], prefs[@"Replace3"]);
+    yearPart = applyPairs(yearPart, prefStr(@"Find1"), prefStr(@"Replace1"));
+    monthPart = applyPairs(monthPart, prefStr(@"Find2"), prefStr(@"Replace2"));
+    dayPart = applyPairs(dayPart, prefStr(@"Find3"), prefStr(@"Replace3"));
 
-    NSString *result = [NSString stringWithFormat:@"%@%@%@", yearPart, monthPart, dayPart];
-    writeLog([NSString stringWithFormat:@"[RESULT] %@ -> %@", input, result]);
-    return result;
+    return [NSString stringWithFormat:@"%@%@%@", yearPart, monthPart, dayPart];
 }
 
 static BOOL isCarrierText(NSString *s) {
@@ -78,22 +88,59 @@ static NSString *lunarText(void) {
     return applyReplacement(lunarDateString());
 }
 
-// 所有 carrier label 都替换
+// 是否应该替换当前 carrier 文字（按开关 + 锁屏状态）
+static BOOL shouldReplace(void) {
+    if (gIsLocked) return prefBool(@"LockEnabled", YES);
+    else return prefBool(@"SpringboardEnabled", YES);
+}
+
+// 替换后应用字体样式
+static void applyStyle(UILabel *label) {
+    NSString *colorHex = prefStr(@"TextColor");
+    if (colorHex.length) {
+        unsigned int rgb = 0;
+        NSScanner *sc = [NSScanner scannerWithString:colorHex];
+        [sc scanHexInt:&rgb];
+        label.textColor = [UIColor colorWithRed:((rgb>>16)&0xFF)/255.0 green:((rgb>>8)&0xFF)/255.0 blue:(rgb&0xFF)/255.0 alpha:1.0];
+    }
+    CGFloat size = [prefStr(@"FontSize") doubleValue];
+    NSString *weight = prefStr(@"FontWeight");
+    UIFontWeight w = UIFontWeightRegular;
+    if ([weight isEqualToString:@"thin"]) w = UIFontWeightThin;
+    else if ([weight isEqualToString:@"light"]) w = UIFontWeightLight;
+    else if ([weight isEqualToString:@"medium"]) w = UIFontWeightMedium;
+    else if ([weight isEqualToString:@"bold"]) w = UIFontWeightBold;
+    if (size <= 0) size = label.font.pointSize;
+    label.font = [UIFont systemFontOfSize:size weight:w];
+}
+
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (isCarrierText(text)) {
+    if (isCarrierText(text) && shouldReplace()) {
         text = lunarText();
+        [self setNeedsLayout];
+        // 下一轮 runloop 应用样式
+        dispatch_async(dispatch_get_main_queue(), ^{ applyStyle(self); });
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (isCarrierText(text.string)) {
+    if (isCarrierText(text.string) && shouldReplace()) {
         text = [[NSAttributedString alloc] initWithString:lunarText()];
+        dispatch_async(dispatch_get_main_queue(), ^{ applyStyle(self); });
     }
     %orig;
 }
 %end
 
 %ctor {
-    writeLog(@"LunarCarrier 加载 (v14 全部替换+prefs日志)");
+    writeLog(@"LunarCarrier 加载 (v17 CFPreferences+开关+样式)");
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                     NULL, onLockStateChanged,
+                                     CFSTR("com.apple.springboard.lockcomplete"),
+                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                     NULL, onLockStateChanged,
+                                     CFSTR("com.apple.springboard.unlockcomplete"),
+                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 }
