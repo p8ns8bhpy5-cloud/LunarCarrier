@@ -14,19 +14,27 @@ static void writeLog(NSString *msg) {
     }
 }
 
-// 用 NSUserDefaults suiteName 读设置（PreferenceLoader 写入的域）
-static NSUserDefaults *prefs() {
-    static NSUserDefaults *d = nil;
+// 直接读 plist 文件（PreferenceLoader 写入的位置）
+static NSDictionary *loadPrefs(void) {
+    static NSDictionary *cached = nil;
     static dispatch_once_t t;
     dispatch_once(&t, ^{
-        d = [[NSUserDefaults alloc] initWithSuiteName:kDomain];
-        [d synchronize];
+        NSArray *paths = @[
+            @"/var/jb/var/mobile/Library/Preferences/com.yourname.lunarcarrier.plist",
+            @"/var/mobile/Library/Preferences/com.yourname.lunarcarrier.plist",
+            [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/com.yourname.lunarcarrier.plist"],
+        ];
+        for (NSString *p in paths) {
+            NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:p];
+            if (d.count) { cached = d; break; }
+        }
+        if (!cached) cached = @{};
     });
-    return d;
+    return cached;
 }
 
 static id prefGet(NSString *key) {
-    return [prefs() objectForKey:key];
+    return loadPrefs()[key];
 }
 
 static BOOL prefBool(NSString *key, BOOL def) {
@@ -141,9 +149,8 @@ static BOOL isInStatusBar(UIView *v) {
 %end
 
 %ctor {
-    writeLog([NSString stringWithFormat:@"v19 锁屏=%d 任务栏=%d Find1=[%@] Replace1=[%@]",
-              prefBool(@"LockEnabled", YES), prefBool(@"SpringboardEnabled", YES),
-              prefStr(@"Find1"), prefStr(@"Replace1")]);
+    NSDictionary *p = loadPrefs();
+    writeLog([NSString stringWithFormat:@"v25 prefs=%@", p]);
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                      NULL, onLockStateChanged,
                                      CFSTR("com.apple.springboard.lockcomplete"),
