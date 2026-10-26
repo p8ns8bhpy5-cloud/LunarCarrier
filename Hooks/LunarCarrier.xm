@@ -63,26 +63,15 @@ static NSString *applyPairs(NSString *text, NSString *find, NSString *repl) {
 }
 
 static NSString *applyReplacement(NSString *input) {
-    // 找"年"字位置
-    NSRange yearRange = [input rangeOfString:@"年"];
-    NSString *yearPart = yearRange.location != NSNotFound ? [input substringToIndex:yearRange.location + 1] : @"";
-    NSString *rest = yearRange.location != NSNotFound ? [input substringFromIndex:yearRange.location + 1] : input;
-
-    NSString *dayPart = @"";
-    NSString *monthPart = rest;
-    if (rest.length >= 2) {
-        dayPart = [rest substringFromIndex:rest.length - 2];
-        monthPart = [rest substringToIndex:rest.length - 2];
+    // 年开关：关闭则去掉到"年"为止
+    if (!prefBool(@"ShowYear", YES)) {
+        NSRange yr = [input rangeOfString:@"年"];
+        if (yr.location != NSNotFound) {
+            input = [input substringFromIndex:yr.location + 1];
+        }
     }
-
-    if (prefBool(@"RemoveLeapChar", NO)) {
-        monthPart = [monthPart stringByReplacingOccurrencesOfString:@"闰" withString:@""];
-    }
-    yearPart = applyPairs(yearPart, prefStr(@"Find1"), prefStr(@"Replace1"));
-    monthPart = applyPairs(monthPart, prefStr(@"Find2"), prefStr(@"Replace2"));
-    dayPart = applyPairs(dayPart, prefStr(@"Find3"), prefStr(@"Replace3"));
-
-    return [NSString stringWithFormat:@"%@%@%@", yearPart, monthPart, dayPart];
+    // 统一替换（|| 分隔多组）
+    return applyPairs(input, prefStr(@"Find"), prefStr(@"Replace"));
 }
 
 static BOOL isCarrierText(NSString *s) {
