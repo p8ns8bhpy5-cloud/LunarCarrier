@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key><string>LunarCarrierPrefs</string>
+	<key>CFBundleIdentifier</key><string>com.yourname.lunarcarrier.preferences</string>
+	<key>CFBundleName</key><string>农历运营商</string>
+	<key>CFBundlePackageType</key><string>BNDL</string>
+	<key>CFBundleShortVersionString</key><string>1.0.0</string>
+	<key>CFBundleVersion</key><string>1.0.0</string>
+	<key>NSPrincipalClass</key><string>LunarCarrierPrefsRootListController</string>
+</dict>
+</plist>
