@@ -11,16 +11,7 @@ static void writeLog(NSString *msg) {
     else { [data writeToFile:p atomically:YES]; }
 }
 
-static BOOL gIsLocked = NO;
-
-static void onLockStateChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
-    NSString *n = (__bridge NSString *)name;
-    if ([n isEqualToString:@"com.apple.springboard.lockcomplete"]) gIsLocked = YES;
-    else if ([n isEqualToString:@"com.apple.springboard.unlockcomplete"]) gIsLocked = NO;
-}
-
-// 农历字符串：去掉"X年"，月名替换，加粗
-static NSAttributedString *lunarAttributed(UIFont *baseFont) {
+static NSString *lunarText(void) {
     NSString *s = lunarDateString();
     NSRange yr = [s rangeOfString:@"年"];
     if (yr.location != NSNotFound) {
@@ -30,9 +21,7 @@ static NSAttributedString *lunarAttributed(UIFont *baseFont) {
     for (NSString *k in map) {
         s = [s stringByReplacingOccurrencesOfString:k withString:map[k]];
     }
-    UIFont *f = baseFont ?: [UIFont systemFontOfSize:14 weight:UIFontWeightBold];
-    UIFont *boldF = [UIFont fontWithDescriptor:[[f fontDescriptor] fontDescriptorWithSymbolicTraits:UIFontDescriptorTraitBold] size:f.pointSize];
-    return [[NSAttributedString alloc] initWithString:s attributes:@{NSFontAttributeName: boldF}];
+    return s;
 }
 
 static BOOL isCarrierText(NSString *s) {
@@ -53,41 +42,28 @@ static BOOL isInStatusBar(UIView *v) {
     return NO;
 }
 
-// 只替换主卡（上方那行）：label 在状态栏内 y 坐标较小的
-static BOOL isMainCarrierLabel(UILabel *label) {
-    // 取 label 在其 superview 里的 y
+// 只替换主卡（上方那行，y 较小）
+static BOOL isMainRow(UILabel *label) {
     CGFloat y = label.frame.origin.y;
-    // 主卡通常在上方，y 较小（0~10）；副卡 y 较大（>10）
-    return y < 10;
+    writeLog([NSString stringWithFormat:@"carrier label y=%.1f text=%@", y, label.text]);
+    return y < 8;
 }
 
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (gIsLocked && isCarrierText(text) && isInStatusBar(self) && isMainCarrierLabel(self)) {
-        NSAttributedString *a = lunarAttributed(self.font);
-        text = a.string;
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self setAttributedText:lunarAttributed(self.font)];
-        });
+    if (isCarrierText(text) && isInStatusBar(self) && isMainRow(self)) {
+        text = lunarText();
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (gIsLocked && isCarrierText(text.string) && isInStatusBar(self) && isMainCarrierLabel(self)) {
-        text = lunarAttributed(self.font);
+    if (isCarrierText(text.string) && isInStatusBar(self) && isMainRow(self)) {
+        text = [[NSAttributedString alloc] initWithString:lunarText()];
     }
     %orig;
 }
 %end
 
 %ctor {
-    writeLog(@"LunarCarrier v34 只显示月日加粗");
-    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-                                     NULL, onLockStateChanged,
-                                     CFSTR("com.apple.springboard.lockcomplete"),
-                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-                                     NULL, onLockStateChanged,
-                                     CFSTR("com.apple.springboard.unlockcomplete"),
-                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    writeLog(@"LunarCarrier v36 只主卡，无加粗");
 }
