@@ -15,6 +15,20 @@ static void writeLog(NSString *msg) {
     }
 }
 
+// 对一段文字应用多组替换（用 || 分隔）
+static NSString *applyPairs(NSString *text, NSString *find, NSString *repl) {
+    if (!find.length) return text;
+    NSArray *finds = [find componentsSeparatedByString:@"||"];
+    NSArray *reps = repl.length ? [repl componentsSeparatedByString:@"||"] : @[];
+    for (NSUInteger i = 0; i < finds.count; i++) {
+        NSString *f = finds[i];
+        if (!f.length) continue;
+        NSString *r = i < reps.count ? reps[i] : @"";
+        text = [text stringByReplacingOccurrencesOfString:f withString:r];
+    }
+    return text;
+}
+
 // 把农历字符串拆成 年/月/日 三段，分别替换
 // 输入如：马年九月十七 / 马年闰二月初一
 static NSString *applyReplacement(NSString *input) {
@@ -23,6 +37,7 @@ static NSString *applyReplacement(NSString *input) {
     if (!gLogged) {
         gLogged = YES;
         writeLog([NSString stringWithFormat:@"[PREFS] %@", prefs]);
+        writeLog([NSString stringWithFormat:@"[INPUT] %@", input]);
     }
 
     // 找"年"字位置，年段 = 到"年"为止（含"年"）
@@ -38,21 +53,16 @@ static NSString *applyReplacement(NSString *input) {
         monthPart = [rest substringToIndex:rest.length - 2];
     }
 
-    // 分别替换
+    // 分别替换（支持 || 多组）
     if ([prefs[@"RemoveLeapChar"] boolValue]) {
         monthPart = [monthPart stringByReplacingOccurrencesOfString:@"闰" withString:@""];
     }
-    for (int i = 1; i <= 3; i++) {
-        NSString *find = prefs[[NSString stringWithFormat:@"Find%d", i]];
-        NSString *repl = prefs[[NSString stringWithFormat:@"Replace%d", i]] ?: @"";
-        if (!find.length) continue;
-        if (i == 1) yearPart = [yearPart stringByReplacingOccurrencesOfString:find withString:repl];
-        else if (i == 2) monthPart = [monthPart stringByReplacingOccurrencesOfString:find withString:repl];
-        else dayPart = [dayPart stringByReplacingOccurrencesOfString:find withString:repl];
-    }
+    yearPart = applyPairs(yearPart, prefs[@"Find1"], prefs[@"Replace1"]);
+    monthPart = applyPairs(monthPart, prefs[@"Find2"], prefs[@"Replace2"]);
+    dayPart = applyPairs(dayPart, prefs[@"Find3"], prefs[@"Replace3"]);
 
     NSString *result = [NSString stringWithFormat:@"%@%@%@", yearPart, monthPart, dayPart];
-    if (!gLogged) writeLog([NSString stringWithFormat:@"[RESULT] %@ -> %@", input, result]);
+    writeLog([NSString stringWithFormat:@"[RESULT] %@ -> %@", input, result]);
     return result;
 }
 
