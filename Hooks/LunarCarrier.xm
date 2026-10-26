@@ -42,22 +42,30 @@ static BOOL isInStatusBar(UIView *v) {
     return NO;
 }
 
-// 只替换主卡（上方那行，y 较小）
-static BOOL isMainRow(UILabel *label) {
-    CGFloat y = label.frame.origin.y;
-    writeLog([NSString stringWithFormat:@"carrier label y=%.1f text=%@", y, label.text]);
-    return y < 8;
+// 只替换主卡：同一容器里如果有"副号"标签，说明这是副卡行，跳过
+static BOOL isMainCardRow(UILabel *label) {
+    UIView *container = label.superview;
+    if (!container) return YES;
+    for (UIView *v in container.subviews) {
+        if ([v isKindOfClass:[UILabel class]]) {
+            UILabel *l = (UILabel *)v;
+            if ([l.text containsString:@"副号"] || [l.text containsString:@"副"]) {
+                return NO;
+            }
+        }
+    }
+    return YES;
 }
 
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (isCarrierText(text) && isInStatusBar(self) && isMainRow(self)) {
+    if (isCarrierText(text) && isInStatusBar(self) && isMainCardRow(self)) {
         text = lunarText();
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (isCarrierText(text.string) && isInStatusBar(self) && isMainRow(self)) {
+    if (isCarrierText(text.string) && isInStatusBar(self) && isMainCardRow(self)) {
         text = [[NSAttributedString alloc] initWithString:lunarText()];
     }
     %orig;
