@@ -14,34 +14,14 @@ static void writeLog(NSString *msg) {
     }
 }
 
-// 扫描 Preferences 目录找 plist
-static NSDictionary *loadPrefs(void) {
-    static NSDictionary *cached = nil;
-    static dispatch_once_t t;
-    dispatch_once(&t, ^{
-        cached = @{};
-        NSFileManager *fm = [NSFileManager defaultManager];
-        NSArray *dirs = @[
-            @"/var/jb/var/mobile/Library/Preferences/",
-            @"/var/mobile/Library/Preferences/",
-        ];
-        for (NSString *dir in dirs) {
-            NSArray *files = [fm contentsOfDirectoryAtPath:dir error:nil];
-            for (NSString *f in files) {
-                if (![f containsString:@"lunarcarrier"]) continue;
-                NSString *p = [dir stringByAppendingPathComponent:f];
-                NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:p];
-                writeLog([NSString stringWithFormat:@"找到 plist: %@ keys=%@", p, d.allKeys]);
-                if (d.count) { cached = d; break; }
-            }
-            if (cached.count) break;
-        }
-    });
-    return cached;
-}
-
 static id prefGet(NSString *key) {
-    return loadPrefs()[key];
+    CFPreferencesAppSynchronize((__bridge CFStringRef)kDomain);
+    // current user + any host（PreferenceLoader 常写到 any host）
+    return (__bridge_transfer id)CFPreferencesCopyAppValue(
+        (__bridge CFStringRef)key,
+        (__bridge CFStringRef)kDomain,
+        kCFPreferencesCurrentUser,
+        kCFPreferencesAnyHost);
 }
 
 static BOOL prefBool(NSString *key, BOOL def) {
@@ -156,8 +136,11 @@ static BOOL isInStatusBar(UIView *v) {
 %end
 
 %ctor {
-    NSDictionary *p = loadPrefs();
-    writeLog([NSString stringWithFormat:@"v25 prefs=%@", p]);
+    writeLog([NSString stringWithFormat:@"v27 Lock=%d SB=%d Year=%d Find=[%@] Repl=[%@] Color=[%@] Size=[%@] Weight=[%@]",
+              prefBool(@"LockEnabled", YES), prefBool(@"SpringboardEnabled", YES),
+              prefBool(@"ShowYear", YES),
+              prefStr(@"Find"), prefStr(@"Replace"),
+              prefStr(@"TextColor"), prefStr(@"FontSize"), prefStr(@"FontWeight")]);
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                      NULL, onLockStateChanged,
                                      CFSTR("com.apple.springboard.lockcomplete"),
