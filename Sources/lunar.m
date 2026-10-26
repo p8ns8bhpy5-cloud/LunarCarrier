@@ -132,7 +132,10 @@ NSString *lunarDateString(void) {
                                      : cnDay3[ld - 21];
 
     // 完整农历日期：如「马年九月十六」；闰月加「闰」字
+    NSString *sxS = [NSString stringWithUTF8String:sx];
+    NSString *mS = [NSString stringWithUTF8String:monthName];
+    NSString *dS = [NSString stringWithUTF8String:dayName];
     if (leap)
-        return [NSString stringWithFormat:@"%s年闰%s月%s", sx, monthName, dayName];
-    return [NSString stringWithFormat:@"%s年%s月%s", sx, monthName, dayName];
+        return [NSString stringWithFormat:@"%@年闰%@月%@", sxS, mS, dS];
+    return [NSString stringWithFormat:@"%@年%@月%@", sxS, mS, dS];
 }
