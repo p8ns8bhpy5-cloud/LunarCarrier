@@ -62,15 +62,13 @@ static NSString *lunarText(void) {
 
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (isCarrierText(text)) {
-        writeLog([NSString stringWithFormat:@"[REPLACE] UILabel.setText %@ -> %@", text, lunarText()]);
+    if (gIsLocked && isCarrierText(text)) {
         text = lunarText();
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (isCarrierText(text.string)) {
-        writeLog([NSString stringWithFormat:@"[REPLACE] UILabel.setAttributedText %@ -> %@", text.string, lunarText()]);
+    if (gIsLocked && isCarrierText(text.string)) {
         text = [[NSAttributedString alloc] initWithString:lunarText()];
     }
     %orig;
@@ -97,6 +95,18 @@ static NSString *lunarText(void) {
 %end
 
 static BOOL gDumped = NO;
+static BOOL gIsLocked = NO;  // 只在锁屏时替换
+
+static void onLockStateChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    NSString *n = (__bridge NSString *)name;
+    if ([n isEqualToString:@"com.apple.springboard.lockcomplete"]) {
+        gIsLocked = YES;
+        writeLog(@"[STATE] 锁屏");
+    } else if ([n isEqualToString:@"com.apple.springboard.unlockcomplete"]) {
+        gIsLocked = NO;
+        writeLog(@"[STATE] 解锁");
+    }
+}
 
 static void sweep(void) {
     UIApplication *app = [UIApplication sharedApplication];
@@ -143,6 +153,13 @@ static void sweep(void) {
 }
 
 %ctor {
-    writeLog(@"LunarCarrier 加载 (v9 省电)");
-    // 不主动 sweep，只靠 UILabel setText: hook 被动拦截，不费电
+    writeLog(@"LunarCarrier 加载 (v10 仅锁屏替换)");
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                     NULL, onLockStateChanged,
+                                     CFSTR("com.apple.springboard.lockcomplete"),
+                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                     NULL, onLockStateChanged,
+                                     CFSTR("com.apple.springboard.unlockcomplete"),
+                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 }
