@@ -14,7 +14,6 @@ static void writeLog(NSString *msg) {
     }
 }
 
-// 读设置里的替换规则并应用到农历文字
 static NSString *applyReplacement(NSString *input) {
     NSString *s = input;
     NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefsPath];
@@ -42,28 +41,21 @@ static NSString *lunarText(void) {
     return applyReplacement(lunarDateString());
 }
 
-// —— 数据层 hook：STTelephonyStatusDomainSIMInfo 的 label / shortLabel ——
-static NSArray *gOrig = nil;
-static NSInteger gHookCalls = 0;
-
+// 只 hook carrier 相关，不动 label/shortLabel（主副卡保持原样）
 %hook STTelephonyStatusDomainSIMInfo
-- (NSString *)label {
-    NSString *orig = %orig;
-    if (gHookCalls < 5) { writeLog([NSString stringWithFormat:@"[CALL] SIMInfo.label 原值=%@", orig]); gHookCalls++; }
-    return lunarText();
-}
-- (NSString *)shortLabel {
-    return lunarText();
-}
 - (NSString *)carrierName {
     NSString *orig = %orig;
     writeLog([NSString stringWithFormat:@"[CALL] carrierName=%@", orig]);
     return lunarText();
 }
 - (NSString *)mobileOperatorName {
+    NSString *orig = %orig;
+    writeLog([NSString stringWithFormat:@"[CALL] mobileOperatorName=%@", orig]);
     return lunarText();
 }
 - (NSString *)serviceProviderName {
+    NSString *orig = %orig;
+    writeLog([NSString stringWithFormat:@"[CALL] serviceProviderName=%@", orig]);
     return lunarText();
 }
 %end
@@ -87,7 +79,8 @@ static NSInteger gHookCalls = 0;
 }
 %end
 
-// 主动遍历替换
+static BOOL gDumped = NO;
+
 static void sweep(void) {
     UIApplication *app = [UIApplication sharedApplication];
     NSMutableSet *windows = [NSMutableSet set];
@@ -98,6 +91,7 @@ static void sweep(void) {
         }
     }
     int replaced = 0;
+    NSMutableArray *seenTexts = [NSMutableArray array];
     for (UIWindow *win in windows) {
         NSMutableArray *stack = [NSMutableArray arrayWithObject:win];
         while (stack.count) {
@@ -109,27 +103,34 @@ static void sweep(void) {
             }
             if (!cur.length && [v respondsToSelector:@selector(text)])
                 cur = [v performSelector:@selector(text)];
+            if (cur.length > 1 && cur.length < 50) [seenTexts addObject:cur];
             if (isCarrierText(cur)) {
-                if ([v respondsToSelector:@selector(setText:)])
+                if ([v respondsToSelector:@selector(setAttributedText:)]) {
+                    [v performSelector:@selector(setAttributedText:) withObject:[[NSAttributedString alloc] initWithString:lunarText()]];
+                } else if ([v respondsToSelector:@selector(setText:)]) {
                     [v performSelector:@selector(setText:) withObject:lunarText()];
+                }
                 replaced++;
             }
             for (UIView *sub in v.subviews) [stack addObject:sub];
         }
     }
-    writeLog([NSString stringWithFormat:@"[SWEEP] 替换 %d 处", replaced]);
+    if (!gDumped) {
+        gDumped = YES;
+        writeLog([NSString stringWithFormat:@"[DUMP] 看到的文字: %@", [seenTexts componentsJoinedByString:@", "]]);
+    }
+    if (replaced > 0) writeLog([NSString stringWithFormat:@"[SWEEP] 替换 %d 处", replaced]);
 }
 
 %ctor {
-    writeLog(@"LunarCarrier 加载 (AXS Mac 编译版)");
+    writeLog(@"LunarCarrier 加载 (v7 去label)");
     @autoreleasepool {
-        for (NSNumber *n in @[@2.0, @5.0, @10.0, @20.0]) {
+        for (NSNumber *n in @[@2.0, @5.0, @10.0]) {
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(n.doubleValue * NSEC_PER_SEC)),
                            dispatch_get_main_queue(), ^{ sweep(); });
         }
-        // 持续每2秒 sweep，锁屏点亮后重新替换
         dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
-        dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC), 2*NSEC_PER_SEC, 1*NSEC_PER_SEC);
+        dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC), 0.5*NSEC_PER_SEC, 0.2*NSEC_PER_SEC);
         dispatch_source_set_event_handler(timer, ^{ sweep(); });
         dispatch_resume(timer);
     }
