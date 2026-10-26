@@ -56,6 +56,8 @@ static NSInteger gHookCalls = 0;
     return lunarText();
 }
 - (NSString *)carrierName {
+    NSString *orig = %orig;
+    writeLog([NSString stringWithFormat:@"[CALL] carrierName=%@", orig]);
     return lunarText();
 }
 - (NSString *)mobileOperatorName {
@@ -121,9 +123,14 @@ static void sweep(void) {
 %ctor {
     writeLog(@"LunarCarrier 加载 (AXS Mac 编译版)");
     @autoreleasepool {
-        for (NSNumber *n in @[@2.0, @5.0, @10.0]) {
+        for (NSNumber *n in @[@2.0, @5.0, @10.0, @20.0]) {
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(n.doubleValue * NSEC_PER_SEC)),
                            dispatch_get_main_queue(), ^{ sweep(); });
         }
+        // 持续每2秒 sweep，锁屏点亮后重新替换
+        dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
+        dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC), 2*NSEC_PER_SEC, 1*NSEC_PER_SEC);
+        dispatch_source_set_event_handler(timer, ^{ sweep(); });
+        dispatch_resume(timer);
     }
 }
