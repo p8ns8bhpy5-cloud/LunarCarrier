@@ -2,6 +2,7 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 
+// rootless 偏好路径
 static NSString *const kPrefsPath = @"/var/mobile/Library/Preferences/com.yourname.lunarcarrier.plist";
 
 static void writeLog(NSString *msg) {
@@ -18,15 +19,18 @@ static void writeLog(NSString *msg) {
 // 输入如：马年九月十七 / 马年闰二月初一
 static NSString *applyReplacement(NSString *input) {
     NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefsPath];
+    static BOOL gLogged = NO;
+    if (!gLogged) {
+        gLogged = YES;
+        writeLog([NSString stringWithFormat:@"[PREFS] %@", prefs]);
+    }
 
-    // 找"年"字位置，年段 = 到"年"为止
+    // 找"年"字位置，年段 = 到"年"为止（含"年"）
     NSRange yearRange = [input rangeOfString:@"年"];
     NSString *yearPart = yearRange.location != NSNotFound ? [input substringToIndex:yearRange.location + 1] : @"";
     NSString *rest = yearRange.location != NSNotFound ? [input substringFromIndex:yearRange.location + 1] : input;
 
-    // 日段 = 末尾（初一..三十，1-3字）
-    // 中文日名：初一..初十(2字) 十一..二十(2字) 廿一..三十(2字) — 都是2字
-    // 但"二十""三十"是2字，"初十"是2字。取最后2字作为日段
+    // 日段 = 末尾2字（初一..三十 都是2字）
     NSString *dayPart = @"";
     NSString *monthPart = rest;
     if (rest.length >= 2) {
@@ -47,7 +51,9 @@ static NSString *applyReplacement(NSString *input) {
         else dayPart = [dayPart stringByReplacingOccurrencesOfString:find withString:repl];
     }
 
-    return [NSString stringWithFormat:@"%@%@%@", yearPart, monthPart, dayPart];
+    NSString *result = [NSString stringWithFormat:@"%@%@%@", yearPart, monthPart, dayPart];
+    if (!gLogged) writeLog([NSString stringWithFormat:@"[RESULT] %@ -> %@", input, result]);
+    return result;
 }
 
 static BOOL isCarrierText(NSString *s) {
@@ -62,48 +68,22 @@ static NSString *lunarText(void) {
     return applyReplacement(lunarDateString());
 }
 
-// 跟踪主卡 label 实例：第一次遇到的 carrier label 是主卡，记录它；后续只替换主卡那个
-static NSMutableSet *gMainLabels = nil;
-static BOOL gMainLocked = NO;
-
+// 所有 carrier label 都替换
 %hook UILabel
 - (void)setText:(NSString *)text {
     if (isCarrierText(text)) {
-        @synchronized(self) {
-            if (!gMainLabels) gMainLabels = [NSMutableSet set];
-            if (!gMainLocked) {
-                // 还没确定主卡：第一个 carrier label 就是主卡
-                [gMainLabels addObject:[NSValue valueWithNonretainedObject:self]];
-                gMainLocked = YES;
-                writeLog([NSString stringWithFormat:@"[MAIN] 锁定主卡 label=%p", self]);
-            }
-            BOOL isMain = [gMainLabels containsObject:[NSValue valueWithNonretainedObject:self]];
-            if (isMain) {
-                text = lunarText();
-            }
-        }
+        text = lunarText();
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
     if (isCarrierText(text.string)) {
-        @synchronized(self) {
-            if (!gMainLabels) gMainLabels = [NSMutableSet set];
-            if (!gMainLocked) {
-                [gMainLabels addObject:[NSValue valueWithNonretainedObject:self]];
-                gMainLocked = YES;
-                writeLog([NSString stringWithFormat:@"[MAIN-A] 锁定主卡 label=%p", self]);
-            }
-            BOOL isMain = [gMainLabels containsObject:[NSValue valueWithNonretainedObject:self]];
-            if (isMain) {
-                text = [[NSAttributedString alloc] initWithString:lunarText()];
-            }
-        }
+        text = [[NSAttributedString alloc] initWithString:lunarText()];
     }
     %orig;
 }
 %end
 
 %ctor {
-    writeLog(@"LunarCarrier 加载 (v13 三段替换+主卡锁定)");
+    writeLog(@"LunarCarrier 加载 (v14 全部替换+prefs日志)");
 }
