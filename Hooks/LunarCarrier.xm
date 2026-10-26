@@ -60,6 +60,23 @@ static NSString *lunarText(void) {
 }
 %end
 
+%hook UILabel
+- (void)setText:(NSString *)text {
+    if (isCarrierText(text)) {
+        writeLog([NSString stringWithFormat:@"[REPLACE] UILabel.setText %@ -> %@", text, lunarText()]);
+        text = lunarText();
+    }
+    %orig;
+}
+- (void)setAttributedText:(NSAttributedString *)text {
+    if (isCarrierText(text.string)) {
+        writeLog([NSString stringWithFormat:@"[REPLACE] UILabel.setAttributedText %@ -> %@", text.string, lunarText()]);
+        text = [[NSAttributedString alloc] initWithString:lunarText()];
+    }
+    %orig;
+}
+%end
+
 %hook _UIStatusBarStringView
 - (void)setText:(id)text {
     NSString *s = [text isKindOfClass:[NSString class]] ? text : nil;
@@ -105,6 +122,9 @@ static void sweep(void) {
                 cur = [v performSelector:@selector(text)];
             if (cur.length > 1 && cur.length < 50) [seenTexts addObject:cur];
             if (isCarrierText(cur)) {
+                writeLog([NSString stringWithFormat:@"[FOUND] 类=%@ frame=%.0f,%.0f,%.0f,%.0f 父=%@ 文字=%@",
+                          [v class], v.frame.origin.x, v.frame.origin.y, v.frame.size.width, v.frame.size.height,
+                          [v.superview class], cur]);
                 if ([v respondsToSelector:@selector(setAttributedText:)]) {
                     [v performSelector:@selector(setAttributedText:) withObject:[[NSAttributedString alloc] initWithString:lunarText()]];
                 } else if ([v respondsToSelector:@selector(setText:)]) {
