@@ -8,7 +8,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = LunarCarrier
 LunarCarrier_FILES = $(wildcard Hooks/*.xm Sources/*.m)
-LunarCarrier_CFLAGS = -fobjc-arc -I./Headers -I./Sources
+LunarCarrier_CFLAGS = -fobjc-arc -I./Headers -I./Sources -Wno-deprecated-declarations -w
 LunarCarrier_FRAMEWORKS = UIKit Foundation CoreFoundation
 LunarCarrier_LIBRARIES = substrate
 
