@@ -143,15 +143,6 @@ static void sweep(void) {
 }
 
 %ctor {
-    writeLog(@"LunarCarrier 加载 (v7 去label)");
-    @autoreleasepool {
-        for (NSNumber *n in @[@2.0, @5.0, @10.0]) {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(n.doubleValue * NSEC_PER_SEC)),
-                           dispatch_get_main_queue(), ^{ sweep(); });
-        }
-        dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
-        dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC), 0.5*NSEC_PER_SEC, 0.2*NSEC_PER_SEC);
-        dispatch_source_set_event_handler(timer, ^{ sweep(); });
-        dispatch_resume(timer);
-    }
+    writeLog(@"LunarCarrier 加载 (v9 省电)");
+    // 不主动 sweep，只靠 UILabel setText: hook 被动拦截，不费电
 }
