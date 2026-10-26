@@ -25,6 +25,31 @@
 			<key>default</key><true/>
 		</dict>
 		<dict>
+			<key>cell</key><string>PSToggleSwitchSpecifier</string>
+			<key>label</key><string>显示年份(如马年)</string>
+			<key>key</key><string>ShowYear</string>
+			<key>default</key><true/>
+		</dict>
+
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>文字替换</string>
+			<key>footerText</key><string>用 || 分隔多组。例：查找填 十一月||十二月，替换填 冬月||腊月</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>查找</string>
+			<key>key</key><string>Find</string>
+			<key>default</key><string></string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>替换为</string>
+			<key>key</key><string>Replace</string>
+			<key>default</key><string></string>
+		</dict>
+
+		<dict>
 			<key>cell</key><string>PSGroupCell</string>
 			<key>label</key><string>字体样式</string>
 		</dict>
@@ -48,48 +73,6 @@
 			<key>key</key><string>FontWeight</string>
 			<key>default</key><string>regular</string>
 			<key>placeholder</key><string>thin/light/regular/medium/bold</string>
-		</dict>
-
-		<dict>
-			<key>cell</key><string>PSGroupCell</string>
-			<key>label</key><string>年/月/日 分别替换</string>
-			<key>footerText</key><string>用 || 分隔多组。例：月查找填 十一月||十二月，替换填 冬月||腊月</string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>年·查找</string>
-			<key>key</key><string>Find1</string>
-			<key>default</key><string></string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>年·替换为</string>
-			<key>key</key><string>Replace1</string>
-			<key>default</key><string></string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>月·查找</string>
-			<key>key</key><string>Find2</string>
-			<key>default</key><string></string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>月·替换为</string>
-			<key>key</key><string>Replace2</string>
-			<key>default</key><string></string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>日·查找</string>
-			<key>key</key><string>Find3</string>
-			<key>default</key><string></string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>日·替换为</string>
-			<key>key</key><string>Replace3</string>
-			<key>default</key><string></string>
 		</dict>
 
 		<dict>
