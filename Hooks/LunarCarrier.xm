@@ -20,14 +20,21 @@ static void onLockStateChanged(CFNotificationCenterRef center, void *observer, C
 }
 
 static NSString *lunarText(void) {
-    NSString *s = lunarDateString();
+    NSString *s = lunarDateString();  // "马年九月十七"
+    // 取生肖字（第一个字）
+    NSString *zodiac = @"";
     NSRange yr = [s rangeOfString:@"年"];
     if (yr.location != NSNotFound) {
-        s = [s substringFromIndex:yr.location + 1];
+        zodiac = [s substringToIndex:1];  // "马"
+        s = [s substringFromIndex:yr.location + 1];  // "九月十七"
     }
+    // 月名替换
     NSDictionary *map = @{@"十一月":@"冬月", @"十二月":@"腊月"};
     for (NSString *k in map) {
         s = [s stringByReplacingOccurrencesOfString:k withString:map[k]];
+    }
+    if (zodiac.length) {
+        s = [NSString stringWithFormat:@"%@·%@", zodiac, s];
     }
     return s;
 }
