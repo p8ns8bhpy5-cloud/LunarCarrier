@@ -21,50 +21,50 @@
 
 		<dict>
 			<key>cell</key><string>PSGroupCell</string>
-			<key>label</key><string>自定义替换规则</string>
-			<key>footerText</key><string>把“查找”里的文字替换成“替换为”。“查找”留空则跳过该组。</string>
+			<key>label</key><string>年/月/日 分别替换</string>
+			<key>footerText</key><string>农历格式：马年九月十七。年规则只作用于"马年"，月规则只作用于"九月"，日规则只作用于"十七"。互不影响。留空则跳过。</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>规则1·查找</string>
+			<key>label</key><string>年·查找</string>
 			<key>key</key><string>Find1</string>
 			<key>default</key><string></string>
-			<key>placeholder</key><string>例如：闰二月</string>
+			<key>placeholder</key><string>例如：马年（留空替换为空白=不显示年）</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>规则1·替换为</string>
+			<key>label</key><string>年·替换为</string>
 			<key>key</key><string>Replace1</string>
 			<key>default</key><string></string>
-			<key>placeholder</key><string>例如：二月</string>
+			<key>placeholder</key><string>留空=删除</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>规则2·查找</string>
+			<key>label</key><string>月·查找</string>
 			<key>key</key><string>Find2</string>
 			<key>default</key><string></string>
-			<key>placeholder</key><string>可选</string>
+			<key>placeholder</key><string>例如：十二月</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>规则2·替换为</string>
+			<key>label</key><string>月·替换为</string>
 			<key>key</key><string>Replace2</string>
 			<key>default</key><string></string>
-			<key>placeholder</key><string>可选</string>
+			<key>placeholder</key><string>例如：腊月</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>规则3·查找</string>
+			<key>label</key><string>日·查找</string>
 			<key>key</key><string>Find3</string>
 			<key>default</key><string></string>
-			<key>placeholder</key><string>可选</string>
+			<key>placeholder</key><string>例如：初一</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>规则3·替换为</string>
+			<key>label</key><string>日·替换为</string>
 			<key>key</key><string>Replace3</string>
 			<key>default</key><string></string>
-			<key>placeholder</key><string>可选</string>
+			<key>placeholder</key><string>例如：朔</string>
 		</dict>
 
 		<dict>
