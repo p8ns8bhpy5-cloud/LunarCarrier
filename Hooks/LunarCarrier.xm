@@ -62,14 +62,23 @@ static NSString *lunarText(void) {
 
 %hook UILabel
 - (void)setText:(NSString *)text {
-    if (gIsLocked && isCarrierText(text)) {
-        text = lunarText();
+    if (isCarrierText(text)) {
+        CGFloat y = [self.window convertPoint:CGPointZero fromView:self].y;
+        writeLog([NSString stringWithFormat:@"[CARRIER] y=%.0f text=%@", y, text]);
+        // 只替换主卡（上面那行，y 较小），副卡不动
+        if (y < 20) {
+            text = lunarText();
+        }
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
-    if (gIsLocked && isCarrierText(text.string)) {
-        text = [[NSAttributedString alloc] initWithString:lunarText()];
+    if (isCarrierText(text.string)) {
+        CGFloat y = [self.window convertPoint:CGPointZero fromView:self].y;
+        writeLog([NSString stringWithFormat:@"[CARRIER-A] y=%.0f text=%@", y, text.string]);
+        if (y < 20) {
+            text = [[NSAttributedString alloc] initWithString:lunarText()];
+        }
     }
     %orig;
 }
