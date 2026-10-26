@@ -14,19 +14,40 @@ static void writeLog(NSString *msg) {
     }
 }
 
+// 把农历字符串拆成 年/月/日 三段，分别替换
+// 输入如：马年九月十七 / 马年闰二月初一
 static NSString *applyReplacement(NSString *input) {
-    NSString *s = input;
     NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefsPath];
-    if ([prefs[@"RemoveLeapChar"] boolValue])
-        s = [s stringByReplacingOccurrencesOfString:@"闰" withString:@""];
+
+    // 找"年"字位置，年段 = 到"年"为止
+    NSRange yearRange = [input rangeOfString:@"年"];
+    NSString *yearPart = yearRange.location != NSNotFound ? [input substringToIndex:yearRange.location + 1] : @"";
+    NSString *rest = yearRange.location != NSNotFound ? [input substringFromIndex:yearRange.location + 1] : input;
+
+    // 日段 = 末尾（初一..三十，1-3字）
+    // 中文日名：初一..初十(2字) 十一..二十(2字) 廿一..三十(2字) — 都是2字
+    // 但"二十""三十"是2字，"初十"是2字。取最后2字作为日段
+    NSString *dayPart = @"";
+    NSString *monthPart = rest;
+    if (rest.length >= 2) {
+        dayPart = [rest substringFromIndex:rest.length - 2];
+        monthPart = [rest substringToIndex:rest.length - 2];
+    }
+
+    // 分别替换
+    if ([prefs[@"RemoveLeapChar"] boolValue]) {
+        monthPart = [monthPart stringByReplacingOccurrencesOfString:@"闰" withString:@""];
+    }
     for (int i = 1; i <= 3; i++) {
         NSString *find = prefs[[NSString stringWithFormat:@"Find%d", i]];
-        if (find.length) {
-            NSString *repl = prefs[[NSString stringWithFormat:@"Replace%d", i]] ?: @"";
-            s = [s stringByReplacingOccurrencesOfString:find withString:repl];
-        }
+        NSString *repl = prefs[[NSString stringWithFormat:@"Replace%d", i]] ?: @"";
+        if (!find.length) continue;
+        if (i == 1) yearPart = [yearPart stringByReplacingOccurrencesOfString:find withString:repl];
+        else if (i == 2) monthPart = [monthPart stringByReplacingOccurrencesOfString:find withString:repl];
+        else dayPart = [dayPart stringByReplacingOccurrencesOfString:find withString:repl];
     }
-    return s;
+
+    return [NSString stringWithFormat:@"%@%@%@", yearPart, monthPart, dayPart];
 }
 
 static BOOL isCarrierText(NSString *s) {
@@ -41,132 +62,48 @@ static NSString *lunarText(void) {
     return applyReplacement(lunarDateString());
 }
 
-// 只 hook carrier 相关，不动 label/shortLabel（主副卡保持原样）
-%hook STTelephonyStatusDomainSIMInfo
-- (NSString *)carrierName {
-    NSString *orig = %orig;
-    writeLog([NSString stringWithFormat:@"[CALL] carrierName=%@", orig]);
-    return lunarText();
-}
-- (NSString *)mobileOperatorName {
-    NSString *orig = %orig;
-    writeLog([NSString stringWithFormat:@"[CALL] mobileOperatorName=%@", orig]);
-    return lunarText();
-}
-- (NSString *)serviceProviderName {
-    NSString *orig = %orig;
-    writeLog([NSString stringWithFormat:@"[CALL] serviceProviderName=%@", orig]);
-    return lunarText();
-}
-%end
+// 跟踪主卡 label 实例：第一次遇到的 carrier label 是主卡，记录它；后续只替换主卡那个
+static NSMutableSet *gMainLabels = nil;
+static BOOL gMainLocked = NO;
 
 %hook UILabel
 - (void)setText:(NSString *)text {
     if (isCarrierText(text)) {
-        CGFloat y = [self.window convertPoint:CGPointZero fromView:self].y;
-        // 主卡 y=0，副卡 y=14，只替换主卡
-        if (y < 7) {
-            text = lunarText();
+        @synchronized(self) {
+            if (!gMainLabels) gMainLabels = [NSMutableSet set];
+            if (!gMainLocked) {
+                // 还没确定主卡：第一个 carrier label 就是主卡
+                [gMainLabels addObject:[NSValue valueWithNonretainedObject:self]];
+                gMainLocked = YES;
+                writeLog([NSString stringWithFormat:@"[MAIN] 锁定主卡 label=%p", self]);
+            }
+            BOOL isMain = [gMainLabels containsObject:[NSValue valueWithNonretainedObject:self]];
+            if (isMain) {
+                text = lunarText();
+            }
         }
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
     if (isCarrierText(text.string)) {
-        CGFloat y = [self.window convertPoint:CGPointZero fromView:self].y;
-        if (y < 7) {
-            text = [[NSAttributedString alloc] initWithString:lunarText()];
+        @synchronized(self) {
+            if (!gMainLabels) gMainLabels = [NSMutableSet set];
+            if (!gMainLocked) {
+                [gMainLabels addObject:[NSValue valueWithNonretainedObject:self]];
+                gMainLocked = YES;
+                writeLog([NSString stringWithFormat:@"[MAIN-A] 锁定主卡 label=%p", self]);
+            }
+            BOOL isMain = [gMainLabels containsObject:[NSValue valueWithNonretainedObject:self]];
+            if (isMain) {
+                text = [[NSAttributedString alloc] initWithString:lunarText()];
+            }
         }
     }
     %orig;
 }
 %end
-
-%hook _UIStatusBarStringView
-- (void)setText:(id)text {
-    NSString *s = [text isKindOfClass:[NSString class]] ? text : nil;
-    if (isCarrierText(s)) {
-        writeLog([NSString stringWithFormat:@"[REPLACE] setText %@ -> %@", s, lunarText()]);
-        text = lunarText();
-    }
-    %orig;
-}
-- (void)setAttributedText:(id)text {
-    NSString *s = [text isKindOfClass:[NSAttributedString class]] ? ((NSAttributedString *)text).string : nil;
-    if (isCarrierText(s)) {
-        writeLog([NSString stringWithFormat:@"[REPLACE] setAttributedText %@ -> %@", s, lunarText()]);
-        text = [[NSAttributedString alloc] initWithString:lunarText()];
-    }
-    %orig;
-}
-%end
-
-static BOOL gDumped = NO;
-static BOOL gIsLocked = NO;  // 只在锁屏时替换
-
-static void onLockStateChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
-    NSString *n = (__bridge NSString *)name;
-    if ([n isEqualToString:@"com.apple.springboard.lockcomplete"]) {
-        gIsLocked = YES;
-        writeLog(@"[STATE] 锁屏");
-    } else if ([n isEqualToString:@"com.apple.springboard.unlockcomplete"]) {
-        gIsLocked = NO;
-        writeLog(@"[STATE] 解锁");
-    }
-}
-
-static void sweep(void) {
-    UIApplication *app = [UIApplication sharedApplication];
-    NSMutableSet *windows = [NSMutableSet set];
-    for (UIScene *sc in app.connectedScenes) {
-        if ([sc isKindOfClass:[UIWindowScene class]]) {
-            UIWindowScene *ws = (UIWindowScene *)sc;
-            for (UIWindow *w in ws.windows) [windows addObject:w];
-        }
-    }
-    int replaced = 0;
-    NSMutableArray *seenTexts = [NSMutableArray array];
-    for (UIWindow *win in windows) {
-        NSMutableArray *stack = [NSMutableArray arrayWithObject:win];
-        while (stack.count) {
-            UIView *v = stack.lastObject; [stack removeLastObject];
-            NSString *cur = nil;
-            if ([v respondsToSelector:@selector(attributedText)]) {
-                NSAttributedString *at = [v performSelector:@selector(attributedText)];
-                cur = at.string;
-            }
-            if (!cur.length && [v respondsToSelector:@selector(text)])
-                cur = [v performSelector:@selector(text)];
-            if (cur.length > 1 && cur.length < 50) [seenTexts addObject:cur];
-            if (isCarrierText(cur)) {
-                writeLog([NSString stringWithFormat:@"[FOUND] 类=%@ frame=%.0f,%.0f,%.0f,%.0f 父=%@ 文字=%@",
-                          [v class], v.frame.origin.x, v.frame.origin.y, v.frame.size.width, v.frame.size.height,
-                          [v.superview class], cur]);
-                if ([v respondsToSelector:@selector(setAttributedText:)]) {
-                    [v performSelector:@selector(setAttributedText:) withObject:[[NSAttributedString alloc] initWithString:lunarText()]];
-                } else if ([v respondsToSelector:@selector(setText:)]) {
-                    [v performSelector:@selector(setText:) withObject:lunarText()];
-                }
-                replaced++;
-            }
-            for (UIView *sub in v.subviews) [stack addObject:sub];
-        }
-    }
-    if (!gDumped) {
-        gDumped = YES;
-        writeLog([NSString stringWithFormat:@"[DUMP] 看到的文字: %@", [seenTexts componentsJoinedByString:@", "]]);
-    }
-    if (replaced > 0) writeLog([NSString stringWithFormat:@"[SWEEP] 替换 %d 处", replaced]);
-}
 
 %ctor {
-    writeLog(@"LunarCarrier 加载 (v10 仅锁屏替换)");
-    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-                                     NULL, onLockStateChanged,
-                                     CFSTR("com.apple.springboard.lockcomplete"),
-                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-                                     NULL, onLockStateChanged,
-                                     CFSTR("com.apple.springboard.unlockcomplete"),
-                                     NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    writeLog(@"LunarCarrier 加载 (v13 三段替换+主卡锁定)");
 }
