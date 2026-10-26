@@ -34,7 +34,7 @@ static NSString *lunarText(void) {
         s = [s stringByReplacingOccurrencesOfString:k withString:map[k]];
     }
     if (zodiac.length) {
-        s = [NSString stringWithFormat:@"%@·%@", zodiac, s];
+        s = [NSString stringWithFormat:@"%@ %@", zodiac, s];
     }
     return s;
 }
