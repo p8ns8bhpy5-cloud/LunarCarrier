@@ -163,21 +163,21 @@ static void rebuildLabels(UIView *carrierView) {
 - (void)setText:(id)text {
     NSString *s = [text isKindOfClass:[NSString class]] ? text : nil;
     // 锁屏 carrier：y>10 才接管；任务栏不动
-    if (isCarrierText(s) && inStatusBar(self) && self.frame.origin.y > 10) {
+    if (isCarrierText(s) && inStatusBar((UIView *)self) && ((UIView *)self).frame.origin.y > 10) {
         // 隐藏原 label：用空格占位
         text = @" ";
         %orig;
-        dispatch_async(dispatch_get_main_queue(), ^{ rebuildLabels:self; });
+        dispatch_async(dispatch_get_main_queue(), ^{ rebuildLabels((UIView *)self); });
         return;
     }
     %orig;
 }
 - (void)setAttributedText:(id)text {
     NSString *s = [text isKindOfClass:[NSAttributedString class]] ? ((NSAttributedString *)text).string : nil;
-    if (isCarrierText(s) && inStatusBar(self) && self.frame.origin.y > 10) {
+    if (isCarrierText(s) && inStatusBar((UIView *)self) && ((UIView *)self).frame.origin.y > 10) {
         text = [[NSAttributedString alloc] initWithString:@" "];
         %orig;
-        dispatch_async(dispatch_get_main_queue(), ^{ rebuildLabels:self; });
+        dispatch_async(dispatch_get_main_queue(), ^{ rebuildLabels((UIView *)self); });
         return;
     }
     %orig;
