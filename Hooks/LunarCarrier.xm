@@ -77,7 +77,7 @@ static NSString *weatherIcon(void) {
                     case 2: case 30: icon = @"🌤"; break;
                     case 3: case 28: case 29: icon = @"☁️"; break;
                     case 6: case 9: case 11: case 12: icon = @"🌧"; break;
-                    case 13: case 14: case 16: case 42: case 46: icon = @"🌨"; break;
+                    case 13: case 14: case 16: case 42: icon = @"🌨"; break;
                     case 15: case 17: case 35: case 41: case 46: icon = @"🌩"; break;
                     default: icon = @"🌡"; break;
                 }
