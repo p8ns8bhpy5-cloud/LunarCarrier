@@ -1,8 +1,8 @@
 Package: com.yourname.lunarcarrier
-Name: 农历运营商 (LunarCarrier)
-Version: 1.0.0-1
+Name: 农历锁屏 (LunarCarrier)
+Version: 1.0.0-43
 Architecture: iphoneos-arm64
-Description: 把状态栏运营商文字替换为农历日期，可在设置 App 里自定义文字替换
+Description: 锁屏运营商隐藏，独立显示农历+天气图标，可自定义颜色/大小/位置
 Maintainer: yourname <you@example.com>
 Author: yourname <you@example.com>
 Section: Tweaks
