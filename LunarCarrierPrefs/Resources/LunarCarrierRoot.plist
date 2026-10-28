@@ -3,81 +3,90 @@
 <plist version="1.0">
 <dict>
 	<key>title</key>
-	<string>农历运营商</string>
+	<string>农历锁屏</string>
 	<key>defaults</key>
 	<string>com.yourname.lunarcarrier</string>
 	<key>items</key>
 	<array>
 		<dict>
 			<key>cell</key><string>PSGroupCell</string>
-			<key>label</key><string>开关</string>
+			<key>label</key><string>农历模块</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSToggleSwitchSpecifier</string>
-			<key>label</key><string>锁屏显示农历</string>
-			<key>key</key><string>LockEnabled</string>
+			<key>label</key><string>启用农历</string>
+			<key>key</key><string>LunarEnabled</string>
 			<key>default</key><true/>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSToggleSwitchSpecifier</string>
-			<key>label</key><string>任务栏显示农历</string>
-			<key>key</key><string>SpringboardEnabled</string>
-			<key>default</key><true/>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSToggleSwitchSpecifier</string>
-			<key>label</key><string>显示年份(如马年)</string>
-			<key>key</key><string>ShowYear</string>
-			<key>default</key><true/>
-		</dict>
-
-		<dict>
-			<key>cell</key><string>PSGroupCell</string>
-			<key>label</key><string>文字替换</string>
-			<key>footerText</key><string>用 || 分隔多组。例：查找填 十一月||十二月，替换填 冬月||腊月</string>
+			<key>label</key><string>显示生肖字</string>
+			<key>key</key><string>LunarShowZodiac</string>
+			<key>default</key><false/>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>查找</string>
-			<key>key</key><string>Find</string>
-			<key>default</key><string></string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>替换为</string>
-			<key>key</key><string>Replace</string>
-			<key>default</key><string></string>
-		</dict>
-
-		<dict>
-			<key>cell</key><string>PSGroupCell</string>
-			<key>label</key><string>字体样式</string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>字体颜色(hex)</string>
-			<key>key</key><string>TextColor</string>
-			<key>default</key><string></string>
-			<key>placeholder</key><string>例如：FF0000 留空=默认</string>
+			<key>label</key><string>字体颜色（HEX）</string>
+			<key>key</key><string>LunarColor</string>
+			<key>default</key><string>#FFFFFF</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
 			<key>label</key><string>字体大小</string>
-			<key>key</key><string>FontSize</string>
-			<key>default</key><string></string>
-			<key>placeholder</key><string>例如：14 留空=默认</string>
+			<key>key</key><string>LunarSize</string>
+			<key>default</key><string>14</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>字体粗细</string>
-			<key>key</key><string>FontWeight</string>
-			<key>default</key><string>regular</string>
-			<key>placeholder</key><string>thin/light/regular/medium/bold</string>
+			<key>label</key><string>水平偏移（左负右正）</string>
+			<key>key</key><string>LunarOffsetX</string>
+			<key>default</key><string>0</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>垂直偏移（上负下正）</string>
+			<key>key</key><string>LunarOffsetY</string>
+			<key>default</key><string>0</string>
 		</dict>
 
 		<dict>
 			<key>cell</key><string>PSGroupCell</string>
-			<key>footerText</key><string>修改后请注销/重启 SpringBoard 后生效。</string>
+			<key>label</key><string>天气模块</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSToggleSwitchSpecifier</string>
+			<key>label</key><string>显示天气图标</string>
+			<key>key</key><string>WeatherEnabled</string>
+			<key>default</key><false/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>图标颜色（HEX）</string>
+			<key>key</key><string>WeatherColor</string>
+			<key>default</key><string>#FFFFFF</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>图标大小</string>
+			<key>key</key><string>WeatherSize</string>
+			<key>default</key><string>14</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>水平偏移</string>
+			<key>key</key><string>WeatherOffsetX</string>
+			<key>default</key><string>0</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>垂直偏移</string>
+			<key>key</key><string>WeatherOffsetY</string>
+			<key>default</key><string>0</string>
+		</dict>
+
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>footerText</key><string>修改后请注销/重启 SpringBoard 后生效。天气需在系统天气 App 中添加城市。</string>
 		</dict>
 	</array>
 </dict>
