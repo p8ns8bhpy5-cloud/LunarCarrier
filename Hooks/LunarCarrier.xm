@@ -43,7 +43,7 @@ static void registerLunarFont(void) {
 static UIFont *lunarFont(CGFloat size) {
     registerLunarFont();
     if (gLunarFontDesc) return [UIFont fontWithDescriptor:gLunarFontDesc size:size];
-    return [UIFont systemFontOfSize:size weight:UIFontWeightHeavy];
+    return [UIFont systemFontOfSize:size];
 }
 
 static NSString *lunarText(void) {
@@ -75,9 +75,9 @@ static NSAttributedString *lunarAttr(UIFont *base, CGFloat maxW, CGFloat maxH) {
             f = lunarFont(fitted);
         }
     }
+    // 颜色、字重均跟随系统，这里只替换字体
     return [[NSAttributedString alloc] initWithString:text
-                                         attributes:@{NSFontAttributeName: f,
-                                                      NSForegroundColorAttributeName: [UIColor whiteColor]}];
+                                         attributes:@{NSFontAttributeName: f}];
 }
 
 static BOOL isCarrier(NSString *s) {
