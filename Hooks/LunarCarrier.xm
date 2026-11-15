@@ -55,10 +55,20 @@ static NSString *lunarText(void) {
     return s;
 }
 
-static NSAttributedString *lunarAttr(UIFont *base) {
+static NSAttributedString *lunarAttr(UIFont *base, CGFloat maxWidth) {
     CGFloat size = base.pointSize > 0 ? base.pointSize : 14;
+    NSString *text = lunarText();
     UIFont *f = lunarFont(size);
-    return [[NSAttributedString alloc] initWithString:lunarText()
+    // 标签宽度固定：文字超出时按比例缩小字号，保证不被右侧裁切（保底 0.7 倍）
+    if (maxWidth > 1) {
+        CGSize fit = [text sizeWithAttributes:@{NSFontAttributeName: f}];
+        if (fit.width > maxWidth) {
+            CGFloat fitted = size * (maxWidth / fit.width);
+            fitted = MAX(fitted, size * 0.7);
+            f = lunarFont(fitted);
+        }
+    }
+    return [[NSAttributedString alloc] initWithString:text
                                          attributes:@{NSFontAttributeName: f,
                                                       NSForegroundColorAttributeName: [UIColor whiteColor]}];
 }
@@ -83,15 +93,16 @@ static BOOL inStatusBar(UIView *v) {
 - (void)setText:(NSString *)text {
     // 只替换锁屏：carrier label 在锁屏 y>10，任务栏 y=0
     if (isCarrier(text) && inStatusBar(self) && self.frame.origin.y > 10) {
-        NSAttributedString *a = lunarAttr(self.font);
-        text = a.string;
-        dispatch_async(dispatch_get_main_queue(), ^{ [self setAttributedText:lunarAttr(self.font)]; });
+        [self setAttributedText:lunarAttr(self.font, self.bounds.size.width)];
+        return;
     }
     %orig;
 }
 - (void)setAttributedText:(NSAttributedString *)text {
     if (isCarrier(text.string) && inStatusBar(self) && self.frame.origin.y > 10) {
-        text = lunarAttr(self.font);
+        self.numberOfLines = 1;
+        self.lineBreakMode = NSLineBreakByClipping;
+        text = lunarAttr(self.font, self.bounds.size.width);
     }
     %orig;
 }
