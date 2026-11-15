@@ -1,46 +1,50 @@
 #import "lunar.h"
 #import <UIKit/UIKit.h>
+#import <CoreText/CoreText.h>
 #import <substrate.h>
-#import <sqlite3.h>
 
-static NSString *const kPrefsPath = @"/var/mobile/Library/Preferences/com.yourname.lunarcarrier.plist";
+// 内嵌子集字体：浪漫雅圆（仅保留农历所需 31 个字形，其余已删除）
+static const char *kLunarFontBase64 =
+"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";
 
-static void writeLog(NSString *msg) {
-    NSString *line = [NSString stringWithFormat:@"%@ %@\n", [NSDate date], msg];
-    NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
-    for (NSString *p in @[@"/var/mobile/LunarCarrier.log"]) {
-        NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:p];
-        if (fh) { [fh seekToEndOfFile]; [fh writeData:data]; }
-        else { [data writeToFile:p atomically:YES]; }
-    }
+static UIFontDescriptor *gLunarFontDesc = nil;
+
+static void registerLunarFont(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSData *data = [[NSData alloc] initWithBase64EncodedString:[NSString stringWithUTF8String:kLunarFontBase64] options:0];
+        if (!data.length) return;
+        CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)data);
+        if (!provider) return;
+        CGFontRef cgFont = CGFontCreateWithDataProvider(provider);
+        if (cgFont) {
+            CFErrorRef err = NULL;
+            CTFontManagerRegisterGraphicsFont(cgFont, &err);
+            CFRelease(cgFont);
+        }
+        CFRelease(provider);
+        // 从已注册字体里解析出描述符，兼容中英文名字
+        for (NSString *family in [UIFont familyNames]) {
+            if ([family containsString:@"雅圆"] || [family containsString:@"ZhunYuan"]) {
+                NSArray *fonts = [UIFont fontsForFamilyName:family];
+                if (fonts.count) { gLunarFontDesc = [fonts.firstObject fontDescriptor]; break; }
+            }
+        }
+        if (!gLunarFontDesc) {
+            UIFont *f = [UIFont fontWithName:@"浪漫雅圆" size:14] ?: [UIFont fontWithName:@"ZhunYuan" size:14];
+            gLunarFontDesc = f.fontDescriptor;
+        }
+    });
 }
 
-static NSDictionary *prefs(void) {
-    return [NSDictionary dictionaryWithContentsOfFile:kPrefsPath] ?: @{};
+static UIFont *lunarFont(CGFloat size) {
+    registerLunarFont();
+    if (gLunarFontDesc) return [UIFont fontWithDescriptor:gLunarFontDesc size:size];
+    return [UIFont systemFontOfSize:size weight:UIFontWeightHeavy];
 }
 
-static BOOL prefBool(NSString *key, BOOL def) {
-    NSNumber *n = prefs()[key];
-    return n ? n.boolValue : def;
-}
-static CGFloat prefFloat(NSString *key, CGFloat def) {
-    NSNumber *n = prefs()[key];
-    return n ? n.doubleValue : def;
-}
-static UIColor *prefColor(NSString *key, CGFloat defAlpha) {
-    NSString *hex = prefs()[key];
-    if (hex.length == 7 && [hex hasPrefix:@"#"]) {
-        unsigned r,g,b;
-        sscanf([hex UTF8String], "#%2x%2x%2x", &r,&g,&b);
-        return [UIColor colorWithRed:r/255.0 green:g/255.0 blue:b/255.0 alpha:defAlpha];
-    }
-    return [UIColor whiteColor];
-}
-
-// —— 农历文本（去年份，十一月=冬月，十二月=腊月）——
-static NSString *lunarMainText(void) {
+static NSString *lunarText(void) {
     NSString *s = lunarDateString();
-    // 去年份部分（"X年"）
     NSRange yr = [s rangeOfString:@"年"];
     if (yr.location != NSNotFound) s = [s substringFromIndex:yr.location + 1];
     s = [s stringByReplacingOccurrencesOfString:@"十一月" withString:@"冬月"];
@@ -48,56 +52,17 @@ static NSString *lunarMainText(void) {
     return s;
 }
 
-// 生肖字（取"X年"第一个字）
-static NSString *zodiacChar(void) {
-    NSString *s = lunarDateString();
-    NSRange yr = [s rangeOfString:@"年"];
-    if (yr.location != NSNotFound && yr.location >= 1)
-        return [s substringWithRange:NSMakeRange(yr.location-1, 1)];
-    return @"";
+static NSAttributedString *lunarAttr(UIFont *base) {
+    CGFloat size = base.pointSize > 0 ? base.pointSize : 14;
+    UIFont *f = lunarFont(size);
+    return [[NSAttributedString alloc] initWithString:lunarText()
+                                         attributes:@{NSFontAttributeName: f,
+                                                      NSForegroundColorAttributeName: [UIColor whiteColor]}];
 }
 
-// —— 天气（从系统 Weather sqlite 读当前条件）——
-static NSString *weatherIcon(void) {
-    NSString *path = @"/var/mobile/Library/Weather/Weather.sqlite";
-    if (![[NSFileManager defaultManager] fileExistsAtPath:path]) return @"";
-    sqlite3 *db = NULL;
-    if (sqlite3_open([path UTF8String], &db) != SQLITE_OK) return @"";
-    NSString *icon = @"";
-    NSString *sql = @"SELECT icon FROM ZCITY ORDER BY ZLASTUPDATE DESC LIMIT 1;";
-    sqlite3_stmt *stmt = NULL;
-    if (sqlite3_prepare_v2(db, [sql UTF8String], -1, &stmt, NULL) == SQLITE_OK) {
-        if (sqlite3_step(stmt) == SQLITE_ROW) {
-            const char *c = (const char *)sqlite3_column_text(stmt, 0);
-            if (c) {
-                int ic = atoi(c);
-                // 简单映射
-                switch (ic) {
-                    case 1: case 32: icon = @"☀️"; break;
-                    case 2: case 30: icon = @"🌤"; break;
-                    case 3: case 28: case 29: icon = @"☁️"; break;
-                    case 6: case 9: case 11: case 12: icon = @"🌧"; break;
-                    case 13: case 14: case 16: case 42: icon = @"🌨"; break;
-                    case 15: case 17: case 35: case 41: case 46: icon = @"🌩"; break;
-                    default: icon = @"🌡"; break;
-                }
-            }
-        }
-        sqlite3_finalize(stmt);
-    }
-    sqlite3_close(db);
-    return icon;
-}
-
-// —— 自定义 label ——
-static UILabel *gLunarLabel;
-static UILabel *gWeatherLabel;
-static UIView *gAnchorView;
-
-static BOOL isCarrierText(NSString *s) {
+static BOOL isCarrier(NSString *s) {
     if (!s.length) return NO;
-    for (NSString *k in @[@"移动", @"联通", @"电信", @"全球通", @"CMCC",
-                          @"China Mobile", @"China Unicom", @"China Telecom"])
+    for (NSString *k in @[@"移动", @"联通", @"电信", @"全球通", @"CMCC"])
         if ([s containsString:k]) return YES;
     return NO;
 }
@@ -111,85 +76,20 @@ static BOOL inStatusBar(UIView *v) {
     return NO;
 }
 
-static void rebuildLabels(UIView *carrierView) {
-    if (!carrierView) return;
-    gAnchorView = carrierView;
-    UIView *container = carrierView.superview;
-    if (!container) return;
-
-    CGRect base = carrierView.frame;
-    CGFloat lSize = prefFloat(@"LunarSize", 14);
-    CGFloat wSize = prefFloat(@"WeatherSize", 14);
-    CGFloat lOx = prefFloat(@"LunarOffsetX", 0);
-    CGFloat lOy = prefFloat(@"LunarOffsetY", 0);
-    CGFloat wOx = prefFloat(@"WeatherOffsetX", 0);
-    CGFloat wOy = prefFloat(@"WeatherOffsetY", 0);
-
-    if (!gLunarLabel) {
-        gLunarLabel = [[UILabel alloc] init];
-        gLunarLabel.font = [UIFont systemFontOfSize:lSize weight:UIFontWeightBold];
-        gLunarLabel.textColor = prefColor(@"LunarColor", 1);
-        gLunarLabel.textAlignment = NSTextAlignmentNatural;
-        [container addSubview:gLunarLabel];
-    }
-    gLunarLabel.hidden = !prefBool(@"LunarEnabled", YES);
-    gLunarLabel.frame = CGRectMake(base.origin.x + lOx, base.origin.y + lOy,
-                                    400, base.size.height ?: 20);
-    NSString *z = prefBool(@"LunarShowZodiac", NO) ? zodiacChar() : @"";
-    gLunarLabel.text = z.length ? [NSString stringWithFormat:@"%@ %@", z, lunarMainText()]
-                                : lunarMainText();
-    gLunarLabel.font = [UIFont systemFontOfSize:lSize weight:UIFontWeightBold];
-    gLunarLabel.textColor = prefColor(@"LunarColor", 1);
-
-    if (!gWeatherLabel) {
-        gWeatherLabel = [[UILabel alloc] init];
-        gWeatherLabel.font = [UIFont systemFontOfSize:wSize weight:UIFontWeightMedium];
-        gWeatherLabel.textAlignment = NSTextAlignmentNatural;
-        [container addSubview:gWeatherLabel];
-    }
-    gWeatherLabel.hidden = !prefBool(@"WeatherEnabled", NO);
-    CGFloat wx = base.origin.x + wOx;
-    if (!gLunarLabel.hidden) {
-        [gLunarLabel sizeToFit];
-        wx = gLunarLabel.frame.origin.x + gLunarLabel.frame.size.width + 4 + wOx;
-    }
-    gWeatherLabel.frame = CGRectMake(wx, base.origin.y + wOy, 60, base.size.height ?: 20);
-    gWeatherLabel.text = weatherIcon();
-    gWeatherLabel.font = [UIFont systemFontOfSize:wSize weight:UIFontWeightMedium];
-    gWeatherLabel.textColor = prefColor(@"WeatherColor", 1);
-}
-
-%hook _UIStatusBarStringView
-- (void)setText:(id)text {
-    NSString *s = [text isKindOfClass:[NSString class]] ? text : nil;
-    // 锁屏 carrier：y>10 才接管；任务栏不动
-    if (isCarrierText(s) && inStatusBar((UIView *)self) && ((UIView *)self).frame.origin.y > 10) {
-        // 隐藏原 label：用空格占位
-        text = @" ";
-        %orig;
-        dispatch_async(dispatch_get_main_queue(), ^{ rebuildLabels((UIView *)self); });
-        return;
+%hook UILabel
+- (void)setText:(NSString *)text {
+    // 只替换锁屏：carrier label 在锁屏 y>10，任务栏 y=0
+    if (isCarrier(text) && inStatusBar(self) && self.frame.origin.y > 10) {
+        NSAttributedString *a = lunarAttr(self.font);
+        text = a.string;
+        dispatch_async(dispatch_get_main_queue(), ^{ [self setAttributedText:lunarAttr(self.font)]; });
     }
     %orig;
 }
-- (void)setAttributedText:(id)text {
-    NSString *s = [text isKindOfClass:[NSAttributedString class]] ? ((NSAttributedString *)text).string : nil;
-    if (isCarrierText(s) && inStatusBar((UIView *)self) && ((UIView *)self).frame.origin.y > 10) {
-        text = [[NSAttributedString alloc] initWithString:@" "];
-        %orig;
-        dispatch_async(dispatch_get_main_queue(), ^{ rebuildLabels((UIView *)self); });
-        return;
+- (void)setAttributedText:(NSAttributedString *)text {
+    if (isCarrier(text.string) && inStatusBar(self) && self.frame.origin.y > 10) {
+        text = lunarAttr(self.font);
     }
     %orig;
 }
 %end
-
-%ctor {
-    writeLog(@"LunarCarrier v43 加载");
-    // 定时刷新（天气/农历日期变化）
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [NSTimer scheduledTimerWithTimeInterval:60 repeats:YES block:^(NSTimer *t) {
-            if (gAnchorView) rebuildLabels(gAnchorView);
-        }];
-    });
-}
