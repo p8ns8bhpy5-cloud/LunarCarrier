@@ -26,8 +26,11 @@ static void registerLunarFont(void) {
         // 从已注册字体里解析出描述符，兼容中英文名字
         for (NSString *family in [UIFont familyNames]) {
             if ([family containsString:@"雅圆"] || [family containsString:@"ZhunYuan"]) {
-                NSArray *fonts = [UIFont fontsForFamilyName:family];
-                if (fonts.count) { gLunarFontDesc = [fonts.firstObject fontDescriptor]; break; }
+                NSArray *names = [UIFont fontNamesForFamilyName:family];
+                if (names.count) {
+                    UIFont *ff = [UIFont fontWithName:names.firstObject size:14];
+                    gLunarFontDesc = ff.fontDescriptor; break;
+                }
             }
         }
         if (!gLunarFontDesc) {
