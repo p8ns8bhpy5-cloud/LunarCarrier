@@ -10,9 +10,6 @@ TWEAK_NAME = LunarCarrier
 LunarCarrier_FILES = $(wildcard Hooks/*.xm Sources/*.m)
 LunarCarrier_CFLAGS = -fobjc-arc -I./Headers -I./Sources
 LunarCarrier_FRAMEWORKS = UIKit Foundation CoreFoundation CoreText
-LunarCarrier_LIBRARIES = substrate sqlite3
+LunarCarrier_LIBRARIES = substrate
 
 include $(THEOS_MAKE_PATH)/tweak.mk
-
-SUBPROJECTS += LunarCarrierPrefs
-include $(THEOS_MAKE_PATH)/aggregate.mk
