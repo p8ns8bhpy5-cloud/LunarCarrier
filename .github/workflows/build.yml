@@ -15,13 +15,11 @@ env:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     outputs:
       package_version: ${{ steps.bump.outputs.package_version }}
     steps:
       - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '15.4'
 
       - uses: actions/checkout@v4
 
